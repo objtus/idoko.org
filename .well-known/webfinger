@@ -1,0 +1,23 @@
+{
+  "subject": "acct:health@idoko.org",
+  "aliases": [
+    "https://tanoshii.site/@health",
+    "https://tanoshii.site/users/9yxxpz7k803n0bb4"
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "type": "application/activity+json",
+      "href": "https://tanoshii.site/users/9yxxpz7k803n0bb4"
+    },
+    {
+      "rel": "http://webfinger.net/rel/profile-page",
+      "type": "text/html",
+      "href": "https://tanoshii.site/@health"
+    },
+    {
+      "rel": "http://ostatus.org/schema/1.0/subscribe",
+      "template": "https://tanoshii.site/authorize-follow?acct={uri}"
+    }
+  ]
+}
