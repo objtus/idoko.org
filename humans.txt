@@ -4,8 +4,8 @@ Name: yuinoid / いど子
 Site: https://yuinoid.neocities.org
 Domain: https://idoko.org
 Location: Japan
-Contact: @tanoshii.site@health (Fediverse, primary)
-         @misskey.io@yuinoid (Fediverse, announcements)
+Contact: [@tanoshii.site@health](https://tanoshii.site/@yuinoid@idoko.org) (Fediverse, primary)
+         [@misskey.io@yuinoid](https://misskey.io/@yuinoid) (Fediverse, announcements)
 Twitch: https://twitch.tv/yuinoid
 Last.fm: https://last.fm/user/objtus
 Tumblr: https://yuinoid.tumblr.com
