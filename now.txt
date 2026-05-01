@@ -1,0 +1,34 @@
+yuinoid / いど子 — now
+
+Updated: 2026-05-01
+Source: https://data.idoko.org/planet-data.json
+
+
+## doing
+
+- idoko.org をアイデンティティの拠点として整備中
+  (WebFinger, NIP-05, rel="me" など)
+- 個人サイト 100%health にrakugaki_paoシリーズを追加
+- ギャラリーに年代別タグ・ページを追加
+- Twitch配信 毎週金曜 22:00〜
+
+
+## listening
+
+宇多田ヒカル を集中的に聴いている。
+他には 原マスミ、久保田早紀、Nobukazu Takemura、
+猫 シ Corp.、desert sand feels warm at night など。
+
+
+## thinking
+
+- ドメインを使って変なことをしたい
+- マインドマップで知識のネットワークを整理中
+  (空間メタファーが記憶の宮殿的に機能している)
+- 合同誌に絵を寄稿してみたい
+
+
+## site
+
+https://yuinoid.neocities.org
+https://idoko.org
