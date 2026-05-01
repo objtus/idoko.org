@@ -1,0 +1,4 @@
+/.well-known/nostr.json
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET
+  Content-Type: application/json
