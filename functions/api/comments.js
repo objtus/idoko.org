@@ -1,10 +1,8 @@
-const TURNSTILE_SECRET = "あとで環境変数に入れる";
-
-async function verifyTurnstile(token, ip) {
+async function verifyTurnstile(token, ip, secret) {
   const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }),
+    body: JSON.stringify({ secret, response: token, remoteip: ip }),
   });
   const data = await res.json();
   return data.success;
@@ -31,7 +29,7 @@ export async function onRequestPost({ request, env }) {
     return Response.json({ error: "Too long" }, { status: 400 });
   }
 
-  const valid = await verifyTurnstile(turnstileToken, ip);
+  const valid = await verifyTurnstile(turnstileToken, ip, env.TURNSTILE_SECRET);
   if (!valid) {
     return Response.json({ error: "Turnstile failed" }, { status: 403 });
   }
