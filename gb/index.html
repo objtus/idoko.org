@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>guestbook - 100%health</title>
+  <link rel="stylesheet" href="../1column.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    /* 投稿フォーム */
+    #post-form {
+      margin-top: 2rem;
+      margin-bottom: 3rem;
+      border-top: 1px solid black;
+      padding-top: 1.5rem;
+    }
+
+    #post-form h2 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      padding-top: 0;
+      scale: 1 0.8;
+      transform-origin: left center;
+    }
+
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 0.8rem;
+    }
+
+    label {
+      font-size: 0.8em;
+      color: #888;
+    }
+
+    input[type="text"],
+    textarea {
+      font-family: saitamaar, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      font-size: 11pt;
+      width: 100%;
+      border: 1px solid black;
+      border-radius: 0;
+      padding: 4px 6px;
+      background: white;
+      color: black;
+      appearance: none;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: 2px solid black;
+      outline-offset: 0;
+    }
+
+    textarea {
+      min-height: 80px;
+    }
+
+    .char-count {
+      font-size: 0.75em;
+      color: #aaa;
+      text-align: right;
+    }
+
+    .char-count.warn {
+      color: #c00;
+    }
+
+    #submit-btn {
+      font-family: saitamaar, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      font-size: 11pt;
+      cursor: pointer;
+      border: 1px solid black;
+      background: black;
+      color: white;
+      padding: 4px 16px;
+      transition: background 0.1s, color 0.1s;
+      margin-top: 0.8rem;
+    }
+
+    #submit-btn:hover {
+      background: white;
+      color: black;
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #form-status {
+      font-size: 0.85em;
+      margin-top: 0.5rem;
+      min-height: 1.2em;
+    }
+
+    #form-status.ok { color: #080; }
+    #form-status.err { color: #c00; }
+
+    .cf-turnstile {
+      margin-top: 0.6rem;
+      transform: scale(0.85);
+      transform-origin: left center;
+    }
+
+    /* コメント一覧 */
+    #comments-section {
+      border-top: 1px solid black;
+      padding-top: 1.5rem;
+    }
+
+    #comments-section h2 {
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+      padding-top: 0;
+      scale: 1 0.8;
+      transform-origin: left center;
+    }
+
+    .comment-item {
+      margin-bottom: 1.8rem;
+      padding-bottom: 1.8rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .comment-item:last-child {
+      border-bottom: none;
+    }
+
+    .comment-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .comment-name {
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+
+    .comment-date {
+      font-size: 0.75em;
+      color: #aaa;
+    }
+
+    .comment-body {
+      font-size: 0.95em;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #loading {
+      color: #aaa;
+      font-size: 0.85em;
+    }
+
+    #no-comments {
+      color: #aaa;
+      font-size: 0.85em;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <header id="header">
+      <div id="header-flex">
+        <nav id="back" aria-label="戻るナビゲーション">
+          <a id="backicon" href="../index.html">
+            &lt;
+          </a>
+        </nav>
+        <nav id="address" aria-label="パンくずナビゲーション">
+          <ol class="breadcrumb">
+            <li><a class="addressbar" href="../index.html">100%health</a></li>
+            <li aria-current="page"><a class="addressbar" href="./index.html">guestbook</a></li>
+          </ol>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <h1 class="title">guestbook</h1>
+
+      <section id="post-form">
+        <h2>書き込む</h2>
+        <div class="form-row">
+          <label for="input-name">name</label>
+          <input type="text" id="input-name" maxlength="50" placeholder="your name" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label for="input-message">message</label>
+          <textarea id="input-message" maxlength="500" placeholder="leave a message..."></textarea>
+          <div class="char-count" id="char-count">0 / 500</div>
+        </div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADIZD04CPzXtviYs" data-theme="light"></div>
+        <button id="submit-btn">send</button>
+        <div id="form-status"></div>
+      </section>
+
+      <section id="comments-section">
+        <h2>messages</h2>
+        <div id="loading">loading...</div>
+        <div id="no-comments">まだコメントはありません。</div>
+        <div id="comments-list"></div>
+      </section>
+    </main>
+
+    <footer id="main-footer">
+      <p><a href="../index.html">← 100%health</a></p>
+    </footer>
+  </div>
+
+  <script>
+    const API = 'https://gb.idoko.org/api/comments';
+
+    function formatDate(str) {
+      const d = new Date(str);
+      return d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        + ' ' + d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function loadComments() {
+      const loading = document.getElementById('loading');
+      const list = document.getElementById('comments-list');
+      const noComments = document.getElementById('no-comments');
+      try {
+        const res = await fetch(API);
+        const data = await res.json();
+        loading.style.display = 'none';
+        if (!data.length) {
+          noComments.style.display = 'block';
+          return;
+        }
+        list.innerHTML = data.map(c => `
+          <article class="comment-item">
+            <div class="comment-meta">
+              <span class="comment-name">${escHtml(c.name)}</span>
+              <time class="comment-date" datetime="${c.created_at}">${formatDate(c.created_at)}</time>
+            </div>
+            <p class="comment-body">${escHtml(c.message)}</p>
+          </article>
+        `).join('');
+      } catch (e) {
+        loading.textContent = 'コメントの読み込みに失敗しました。';
+      }
+    }
+
+    const msgInput = document.getElementById('input-message');
+    const charCount = document.getElementById('char-count');
+    msgInput.addEventListener('input', () => {
+      const len = msgInput.value.length;
+      charCount.textContent = `${len} / 500`;
+      charCount.classList.toggle('warn', len > 450);
+    });
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const name = document.getElementById('input-name').value.trim();
+      const message = msgInput.value.trim();
+      const status = document.getElementById('form-status');
+      const btn = document.getElementById('submit-btn');
+
+      if (!name) { status.textContent = 'nameを入力してください。'; status.className = 'err'; return; }
+      if (!message) { status.textContent = 'messageを入力してください。'; status.className = 'err'; return; }
+
+      const tokenEl = document.querySelector('[name="cf-turnstile-response"]');
+      const turnstileToken = tokenEl ? tokenEl.value : '';
+      if (!turnstileToken) { status.textContent = 'Turnstileの確認が完了していません。'; status.className = 'err'; return; }
+
+      btn.disabled = true;
+      status.textContent = '送信中...';
+      status.className = '';
+
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, message, turnstileToken }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          status.textContent = '送信しました！';
+          status.className = 'ok';
+          document.getElementById('input-name').value = '';
+          msgInput.value = '';
+          charCount.textContent = '0 / 500';
+          turnstile.reset();
+          await loadComments();
+        } else {
+          status.textContent = data.error || '送信に失敗しました。';
+          status.className = 'err';
+          turnstile.reset();
+        }
+      } catch (e) {
+        status.textContent = '送信に失敗しました。';
+        status.className = 'err';
+        turnstile.reset();
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadComments();
+  </script>
+</body>
+</html>

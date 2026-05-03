@@ -1,0 +1,8 @@
+name = "idoko-org"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "idoko_guestbook"
+database_name = "idoko-guestbook"
+database_id = "e6c0ddc1-51c6-4d38-8d83-4f996eed4751"
