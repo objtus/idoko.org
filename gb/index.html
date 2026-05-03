@@ -4,10 +4,139 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>guestbook - 100%health</title>
-  <link rel="stylesheet" href="../1column.css">
+  <title>guestbook - idoko.org</title>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
+    :root {
+      color-scheme: light only;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-size: 11pt;
+      font-family: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      word-break: auto-phrase;
+    }
+
+    #wrapper {
+      width: 100%;
+      min-height: 100%;
+      color: black;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      border-left: 40px solid black;
+    }
+
+    a {
+      color: black;
+      transition: color 0.1s, background-color 0.1s;
+    }
+
+    a:hover {
+      color: white;
+      background-color: black;
+    }
+
+    ::selection {
+      color: #fff;
+      background-color: #00f;
+    }
+
+    /* ヘッダー */
+    #header-flex {
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: white;
+    }
+
+    #back {
+      width: 30px;
+      margin-right: 20px;
+      font-size: large;
+      font-weight: bold;
+      line-height: 18px;
+      flex-shrink: 0;
+    }
+
+    #address {
+      font-size: large;
+      font-weight: bold;
+      line-height: 18px;
+      transform: scale(1.15, 0.85);
+      transform-origin: left center;
+    }
+
+    a#backicon,
+    a.addressbar {
+      color: black;
+      text-decoration: none;
+    }
+
+    a#backicon:hover,
+    a.addressbar:hover {
+      background-color: transparent;
+      color: black;
+    }
+
+    .breadcrumb {
+      list-style: none;
+      display: flex;
+      column-gap: 0.5em;
+      flex-wrap: wrap;
+    }
+
+    .breadcrumb li::after {
+      content: "/";
+      margin-left: 0.5em;
+    }
+
+    .breadcrumb li:first-child::after {
+      content: "::";
+    }
+
+    .breadcrumb li:last-child::after {
+      content: "";
+    }
+
+    .breadcrumb li[aria-current="page"] {
+      font-weight: bold;
+    }
+
+    .breadcrumb a {
+      text-decoration: none;
+    }
+
+    /* メイン */
+    #main {
+      width: 70%;
+      max-width: 600px;
+      margin: 0 auto;
+      margin-top: 70px;
+      padding-bottom: 80px;
+    }
+
+    h1.title {
+      font-size: 1.5rem;
+      text-align: right;
+      line-height: 24px;
+      padding-top: 1.5rem;
+      scale: 1 0.8;
+    }
+
     /* 投稿フォーム */
     #post-form {
       margin-top: 2rem;
@@ -16,7 +145,8 @@
       padding-top: 1.5rem;
     }
 
-    #post-form h2 {
+    #post-form h2,
+    #comments-section h2 {
       font-size: 1rem;
       margin-bottom: 1rem;
       padding-top: 0;
@@ -38,7 +168,7 @@
 
     input[type="text"],
     textarea {
-      font-family: saitamaar, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      font-family: inherit;
       font-size: 11pt;
       width: 100%;
       border: 1px solid black;
@@ -48,7 +178,6 @@
       color: black;
       appearance: none;
       resize: vertical;
-      box-sizing: border-box;
     }
 
     input[type="text"]:focus,
@@ -72,7 +201,7 @@
     }
 
     #submit-btn {
-      font-family: saitamaar, "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+      font-family: inherit;
       font-size: 11pt;
       cursor: pointer;
       border: 1px solid black;
@@ -112,14 +241,6 @@
     #comments-section {
       border-top: 1px solid black;
       padding-top: 1.5rem;
-    }
-
-    #comments-section h2 {
-      font-size: 1rem;
-      margin-bottom: 1.2rem;
-      padding-top: 0;
-      scale: 1 0.8;
-      transform-origin: left center;
     }
 
     .comment-item {
@@ -166,6 +287,45 @@
       font-size: 0.85em;
       display: none;
     }
+
+    /* フッター */
+    #main-footer {
+      width: 70%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding-bottom: 40px;
+      font-size: 0.8em;
+      color: #aaa;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+
+    /* レスポンシブ */
+    @media screen and (width <= 768px) {
+      #main, #main-footer {
+        width: 80%;
+      }
+    }
+
+    @media screen and (width <= 576px) {
+      #wrapper {
+        border-left: 5px solid black;
+      }
+
+      body {
+        font-size: 0.9rem;
+      }
+
+      #main, #main-footer {
+        width: 90%;
+        margin-top: 45px;
+      }
+
+      #back {
+        width: 0;
+        overflow: hidden;
+      }
+    }
   </style>
 </head>
 
@@ -174,14 +334,14 @@
     <header id="header">
       <div id="header-flex">
         <nav id="back" aria-label="戻るナビゲーション">
-          <a id="backicon" href="../index.html">
+          <a id="backicon" href="https://idoko.org/">
             &lt;
           </a>
         </nav>
         <nav id="address" aria-label="パンくずナビゲーション">
           <ol class="breadcrumb">
-            <li><a class="addressbar" href="../index.html">100%health</a></li>
-            <li aria-current="page"><a class="addressbar" href="./index.html">guestbook</a></li>
+            <li><a class="addressbar" href="https://idoko.org/">idoko.org</a></li>
+            <li aria-current="page"><a class="addressbar" href="https://gb.idoko.org/">guestbook</a></li>
           </ol>
         </nav>
       </div>
@@ -215,7 +375,7 @@
     </main>
 
     <footer id="main-footer">
-      <p><a href="../index.html">← 100%health</a></p>
+      <p><a href="https://idoko.org/">← idoko.org</a></p>
     </footer>
   </div>
 
