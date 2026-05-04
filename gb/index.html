@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>guestbook - idoko.org</title>
+  <link rel="alternate" type="application/rss+xml" title="guestbook RSS" href="https://gb.idoko.org/api/guestbook-rss">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     :root {
@@ -15,6 +16,10 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+
+    html {
+      scroll-padding-top: 72px;
     }
 
     html, body {
@@ -51,6 +56,18 @@
     ::selection {
       color: #fff;
       background-color: #00f;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     /* ヘッダー */
@@ -137,6 +154,19 @@
       scale: 1 0.8;
     }
 
+    #poster-filter-banner {
+      display: none;
+      font-size: 0.85em;
+      color: #444;
+      margin-bottom: 1rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    #poster-filter-banner a {
+      margin-left: 0.5em;
+    }
+
     /* 投稿フォーム */
     #post-form {
       margin-top: 2rem;
@@ -200,26 +230,58 @@
       color: #c00;
     }
 
-    #submit-btn {
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      align-items: center;
+    }
+
+    .btn {
       font-family: inherit;
       font-size: 11pt;
       cursor: pointer;
       border: 1px solid black;
-      background: black;
-      color: white;
-      padding: 4px 16px;
+      padding: 4px 14px;
       transition: background 0.1s, color 0.1s;
-      margin-top: 0.8rem;
-    }
-
-    #submit-btn:hover {
       background: white;
       color: black;
     }
 
-    #submit-btn:disabled {
+    .btn:hover {
+      background: black;
+      color: white;
+    }
+
+    .btn-primary {
+      background: black;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: white;
+      color: black;
+    }
+
+    .btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+    }
+
+    #preview-panel {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      background: #fafafa;
+      font-size: 0.95em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #preview-panel.is-visible {
+      display: block;
     }
 
     #form-status {
@@ -243,38 +305,56 @@
       padding-top: 1.5rem;
     }
 
-    .comment-item {
+    .guestbook-entry {
       margin-bottom: 1.8rem;
       padding-bottom: 1.8rem;
       border-bottom: 1px solid #eee;
     }
 
-    .comment-item:last-child {
+    .guestbook-entry:last-child {
       border-bottom: none;
     }
 
-    .comment-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 0.4rem;
+    .guestbook-entry header {
+      margin-bottom: 0.5rem;
     }
 
-    .comment-name {
+    .guestbook-head {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .guestbook-head a {
+      text-decoration: none;
+    }
+
+    .guestbook-head .p-author {
       font-weight: bold;
-      font-size: 0.9em;
     }
 
-    .comment-date {
-      font-size: 0.75em;
-      color: #aaa;
-    }
-
-    .comment-body {
+    .guestbook-body {
       font-size: 0.95em;
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
+      margin-top: 0.35rem;
+    }
+
+    .guestbook-stats {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 0.35rem;
+    }
+
+    .reply-row {
+      margin-top: 0.5rem;
+    }
+
+    .ref-link--stale {
+      opacity: 0.35;
     }
 
     #loading {
@@ -298,6 +378,11 @@
       color: #aaa;
       border-top: 1px solid #eee;
       padding-top: 1rem;
+    }
+
+    #main-footer a.feed-link {
+      display: inline-block;
+      margin-left: 0.5em;
     }
 
     /* レスポンシブ */
@@ -350,19 +435,42 @@
     <main id="main">
       <h1 class="title">guestbook</h1>
 
+      <p id="poster-filter-banner" role="status"></p>
+
       <section id="post-form">
         <h2>書き込む</h2>
-        <div class="form-row">
-          <label for="input-name">name</label>
-          <input type="text" id="input-name" maxlength="50" placeholder="your name" autocomplete="off">
+        <input type="hidden" id="input-reply-to" value="">
+
+        <div id="fields-panel">
+          <div class="form-row visually-hidden" aria-hidden="true">
+            <label for="input-website">website</label>
+            <input type="text" id="input-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <label for="input-name">name（任意）</label>
+            <input type="text" id="input-name" maxlength="50" placeholder="空欄は Anonymous" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <label for="input-subject">subject（任意）</label>
+            <input type="text" id="input-subject" maxlength="120" placeholder="空欄は (no subject)" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <label for="input-message">message（必須）</label>
+            <textarea id="input-message" maxlength="500" placeholder="本文..."></textarea>
+            <div class="char-count" id="char-count">0 / 500</div>
+          </div>
         </div>
-        <div class="form-row">
-          <label for="input-message">message</label>
-          <textarea id="input-message" maxlength="500" placeholder="leave a message..."></textarea>
-          <div class="char-count" id="char-count">0 / 500</div>
-        </div>
+
+        <div id="preview-panel" aria-live="polite"></div>
+
         <div class="cf-turnstile" data-sitekey="0x4AAAAAADIZD04CPzXtviYs" data-theme="light"></div>
-        <button id="submit-btn">send</button>
+
+        <div class="form-actions">
+          <button type="button" class="btn" id="clear-btn">クリア</button>
+          <button type="button" class="btn" id="preview-btn">プレビュー</button>
+          <button type="button" class="btn" id="edit-btn" style="display:none">修正する</button>
+          <button type="button" class="btn btn-primary" id="submit-btn" style="display:none">この内容で送信</button>
+        </div>
         <div id="form-status"></div>
       </section>
 
@@ -375,21 +483,176 @@
     </main>
 
     <footer id="main-footer">
-      <p><a href="https://idoko.org/">← idoko.org</a></p>
+      <p>
+        <a href="https://idoko.org/">← idoko.org</a>
+        <a class="feed-link" href="https://gb.idoko.org/api/guestbook-rss">RSS</a>
+      </p>
     </footer>
   </div>
 
   <script>
     const API = 'https://gb.idoko.org/api/comments';
+    let globalMaxId = 0;
+    let posterFilter = '';
 
-    function formatDate(str) {
-      const d = new Date(str);
-      return d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
-        + ' ' + d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    function normalizePayload(raw) {
+      if (Array.isArray(raw)) {
+        const c = raw;
+        return {
+          comments: c,
+          max_id: c.length ? Math.max(...c.map((x) => x.id)) : 0,
+        };
+      }
+      return {
+        comments: raw.comments || [],
+        max_id: raw.max_id != null ? raw.max_id : 0,
+      };
     }
 
     function escHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escAttr(str) {
+      return escHtml(str).replace(/'/g, '&#39;');
+    }
+
+    function displaySubjectRow(c) {
+      return c.subject && String(c.subject).trim() ? String(c.subject).trim() : '(no subject)';
+    }
+
+    function formatTokyoHuman(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso);
+      return d.toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
+    function isoDatetimeAttr(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString();
+    }
+
+    function unixSec(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return 0;
+      return Math.floor(d.getTime() / 1000);
+    }
+
+    function utf8Bytes(s) {
+      return new TextEncoder().encode(s).length;
+    }
+
+    function charCountUnicode(s) {
+      return [...String(s)].length;
+    }
+
+    function linkifyRefsAfterEscape(escapedBody, maxId) {
+      return escapedBody.replace(/&gt;&gt;(\d+)/g, (_, digits) => {
+        const n = parseInt(digits, 10);
+        const stale = n > maxId;
+        const cls = stale ? 'ref-link ref-link--stale' : 'ref-link';
+        return `<a class="${cls}" href="#comment-${n}">&gt;&gt;${digits}</a>`;
+      });
+    }
+
+    function thankYouMessage() {
+      const fmt = new Intl.DateTimeFormat('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        hour: 'numeric',
+        hour12: false,
+      });
+      const h = parseInt(fmt.formatToParts(new Date()).find((p) => p.type === 'hour').value, 10);
+      if (h >= 5 && h < 12) return '朝の投稿、ありがとうございます。';
+      if (h >= 12 && h < 18) return 'ありがとうございます。';
+      if (h >= 18 && h < 22) return 'お疲れさまです。ありがとうございます。';
+      return '遅い時間にもありがとうございます。';
+    }
+
+    function readPosterFilter() {
+      const q = new URLSearchParams(window.location.search).get('poster');
+      posterFilter = q && q.trim() ? q.trim() : '';
+      const banner = document.getElementById('poster-filter-banner');
+      if (!posterFilter) {
+        banner.style.display = 'none';
+        banner.textContent = '';
+        return;
+      }
+      banner.style.display = 'block';
+      banner.innerHTML = `${escHtml(posterFilter)} の投稿のみ表示中。<a href="${escAttr(window.location.pathname)}">全件を表示</a>`;
+    }
+
+    function renderList(comments, maxId) {
+      const list = document.getElementById('comments-list');
+      let rows = comments;
+      if (posterFilter) {
+        rows = comments.filter((c) => String(c.poster_id || '') === posterFilter);
+      }
+      if (!rows.length) {
+        list.innerHTML = '';
+        return;
+      }
+      list.innerHTML = rows.map((c) => {
+        const id = c.id;
+        const subj = displaySubjectRow(c);
+        const subjAttr = c.subject && String(c.subject).trim() ? String(c.subject).trim() : '(no subject)';
+        const author = escHtml(c.display_name || ((c.name && String(c.name).trim()) ? c.name : 'Anonymous'));
+        const star = c.is_admin ? ' ★' : '';
+        const whenHuman = formatTokyoHuman(c.created_at);
+        const whenIso = isoDatetimeAttr(c.created_at);
+        const ux = unixSec(c.created_at);
+        const pid = String(c.poster_id || '');
+        const posterLink = pid
+          ? `<a rel="tag" href="?poster=${escAttr(encodeURIComponent(pid))}">${escHtml(pid)}</a>`
+          : '—';
+        const bodyRaw = String(c.message || '');
+        const bodyHtml = linkifyRefsAfterEscape(escHtml(bodyRaw), maxId);
+        const replyTo = c.reply_to_id ? `<a class="u-in-reply-to" href="#comment-${c.reply_to_id}"></a>` : '';
+        return `
+<article class="h-entry guestbook-entry" id="comment-${id}">
+  <a class="u-uid" href="#comment-${id}"></a>
+  ${replyTo}
+  <header>
+    <div class="guestbook-head">#${String(id).padStart(3, '0')}
+From    : <span class="p-author">${author}</span>${escHtml(star)}
+Date    : <time class="dt-published" datetime="${escAttr(whenIso)}">${escHtml(whenHuman)}</time>  [<data value="${ux}">${ux}</data>]
+Subject : ${escHtml(subj)}</div>
+    <data class="p-name" value="${escAttr(subjAttr)}"></data>
+  </header>
+  <div class="e-content guestbook-body">${bodyHtml}</div>
+  <div class="guestbook-stats">${charCountUnicode(bodyRaw)} chars / ${utf8Bytes(bodyRaw)} bytes<br>
+ID: ${posterLink}</div>
+  <div class="reply-row">
+    <button type="button" class="btn reply-btn" data-reply-id="${id}" data-subject="${escAttr(subjAttr)}">返信</button>
+  </div>
+</article>`;
+      }).join('');
+
+      list.querySelectorAll('.reply-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const rid = btn.getAttribute('data-reply-id');
+          const sub = btn.getAttribute('data-subject') || '(no subject)';
+          document.getElementById('input-reply-to').value = rid;
+          const reSub = sub.startsWith('re: ') ? sub : `re: ${sub}`;
+          document.getElementById('input-subject').value = reSub;
+          const msg = document.getElementById('input-message');
+          const line = `>>${rid} `;
+          msg.value = msg.value.trim().length ? `${line}\n${msg.value}` : `${line}\n`;
+          document.getElementById('post-form').scrollIntoView({ behavior: 'smooth' });
+          msg.focus();
+          const len = msg.value.length;
+          const cc = document.getElementById('char-count');
+          cc.textContent = `${len} / 500`;
+          cc.classList.toggle('warn', len > 450);
+        });
+      });
     }
 
     async function loadComments() {
@@ -398,21 +661,28 @@
       const noComments = document.getElementById('no-comments');
       try {
         const res = await fetch(API);
-        const data = await res.json();
+        const raw = await res.json();
+        const { comments: data, max_id: mid } = normalizePayload(raw);
+        globalMaxId = mid || 0;
         loading.style.display = 'none';
+        readPosterFilter();
         if (!data.length) {
           noComments.style.display = 'block';
+          noComments.textContent = 'まだコメントはありません。';
+          list.innerHTML = '';
           return;
         }
-        list.innerHTML = data.map(c => `
-          <article class="comment-item">
-            <div class="comment-meta">
-              <span class="comment-name">${escHtml(c.name)}</span>
-              <time class="comment-date" datetime="${c.created_at}">${formatDate(c.created_at)}</time>
-            </div>
-            <p class="comment-body">${escHtml(c.message)}</p>
-          </article>
-        `).join('');
+        noComments.textContent = 'まだコメントはありません。';
+        renderList(data, globalMaxId);
+        const filteredEmpty =
+          posterFilter && !data.some((c) => String(c.poster_id || '') === posterFilter);
+        if (filteredEmpty) {
+          noComments.style.display = 'block';
+          noComments.textContent = 'この ID の投稿はまだありません。';
+          list.innerHTML = '';
+        } else {
+          noComments.style.display = 'none';
+        }
       } catch (e) {
         loading.textContent = 'コメントの読み込みに失敗しました。';
       }
@@ -420,53 +690,141 @@
 
     const msgInput = document.getElementById('input-message');
     const charCount = document.getElementById('char-count');
+    const previewPanel = document.getElementById('preview-panel');
+    const fieldsPanel = document.getElementById('fields-panel');
+    const previewBtn = document.getElementById('preview-btn');
+    const editBtn = document.getElementById('edit-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    function setComposeMode(isPreview) {
+      previewPanel.classList.toggle('is-visible', isPreview);
+      previewPanel.style.display = isPreview ? 'block' : 'none';
+      fieldsPanel.style.display = isPreview ? 'none' : '';
+      previewBtn.style.display = isPreview ? 'none' : '';
+      clearBtn.style.display = isPreview ? 'none' : '';
+      editBtn.style.display = isPreview ? '' : 'none';
+      submitBtn.style.display = isPreview ? '' : 'none';
+    }
+
+    function resetPreview() {
+      setComposeMode(false);
+      previewPanel.textContent = '';
+    }
+
     msgInput.addEventListener('input', () => {
       const len = msgInput.value.length;
       charCount.textContent = `${len} / 500`;
       charCount.classList.toggle('warn', len > 450);
     });
 
-    document.getElementById('submit-btn').addEventListener('click', async () => {
-      const name = document.getElementById('input-name').value.trim();
-      const message = msgInput.value.trim();
-      const status = document.getElementById('form-status');
-      const btn = document.getElementById('submit-btn');
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('input-name').value = '';
+      document.getElementById('input-subject').value = '';
+      document.getElementById('input-website').value = '';
+      document.getElementById('input-reply-to').value = '';
+      msgInput.value = '';
+      charCount.textContent = '0 / 500';
+      charCount.classList.remove('warn');
+      const st = document.getElementById('form-status');
+      st.textContent = '';
+      st.className = '';
+      resetPreview();
+      try { turnstile.reset(); } catch (e) {}
+    });
 
-      if (!name) { status.textContent = 'nameを入力してください。'; status.className = 'err'; return; }
-      if (!message) { status.textContent = 'messageを入力してください。'; status.className = 'err'; return; }
+    previewBtn.addEventListener('click', () => {
+      const status = document.getElementById('form-status');
+      const message = msgInput.value.trim();
+      if (!message) {
+        status.textContent = '本文を入力してください。';
+        status.className = 'err';
+        return;
+      }
+      status.textContent = '';
+      status.className = '';
+      const name = document.getElementById('input-name').value.trim() || 'Anonymous';
+      const subject = document.getElementById('input-subject').value.trim() || '(no subject)';
+      const replyTo = document.getElementById('input-reply-to').value.trim();
+      const previewText = [
+        `名前: ${name}`,
+        `件名: ${subject}`,
+        replyTo ? `返信先: #${replyTo}` : '',
+        '',
+        message,
+        '',
+        `${charCountUnicode(message)} chars / ${utf8Bytes(message)} bytes`,
+      ].filter(Boolean).join('\n');
+      previewPanel.textContent = previewText;
+      setComposeMode(true);
+    });
+
+    editBtn.addEventListener('click', () => resetPreview());
+
+    submitBtn.addEventListener('click', async () => {
+      const name = document.getElementById('input-name').value.trim();
+      const subject = document.getElementById('input-subject').value.trim();
+      const message = msgInput.value.trim();
+      const honeypot = document.getElementById('input-website').value;
+      const replyTo = document.getElementById('input-reply-to').value.trim();
+      const status = document.getElementById('form-status');
+      const btn = submitBtn;
+
+      if (!message) {
+        status.textContent = '本文を入力してください。';
+        status.className = 'err';
+        return;
+      }
 
       const tokenEl = document.querySelector('[name="cf-turnstile-response"]');
       const turnstileToken = tokenEl ? tokenEl.value : '';
-      if (!turnstileToken) { status.textContent = 'Turnstileの確認が完了していません。'; status.className = 'err'; return; }
+      if (!turnstileToken) {
+        status.textContent = 'Turnstileの確認が完了していません。';
+        status.className = 'err';
+        return;
+      }
 
       btn.disabled = true;
       status.textContent = '送信中...';
       status.className = '';
 
+      const payload = {
+        name,
+        subject,
+        message,
+        turnstileToken,
+        website: honeypot,
+      };
+      if (replyTo) payload.reply_to_id = replyTo;
+
       try {
         const res = await fetch(API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, message, turnstileToken }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (data.ok) {
-          status.textContent = '送信しました！';
+          status.textContent = thankYouMessage();
           status.className = 'ok';
           document.getElementById('input-name').value = '';
+          document.getElementById('input-subject').value = '';
+          document.getElementById('input-website').value = '';
+          document.getElementById('input-reply-to').value = '';
           msgInput.value = '';
           charCount.textContent = '0 / 500';
-          turnstile.reset();
+          resetPreview();
+          try { turnstile.reset(); } catch (e) {}
           await loadComments();
         } else {
           status.textContent = data.error || '送信に失敗しました。';
           status.className = 'err';
-          turnstile.reset();
+          try { turnstile.reset(); } catch (e) {}
         }
       } catch (e) {
         status.textContent = '送信に失敗しました。';
         status.className = 'err';
-        turnstile.reset();
+        try { turnstile.reset(); } catch (e) {}
       } finally {
         btn.disabled = false;
       }
